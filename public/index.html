@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>Egg FPS Arena</title>
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
@@ -43,39 +42,40 @@
       controls.lock();
     };
 
-    // Lights
+    controls.addEventListener('lock', () => {
+      menu.style.display = "none";
+    });
+
+    controls.addEventListener('unlock', () => {
+      menu.style.display = "flex";
+    });
+
     scene.add(new THREE.AmbientLight(0xffffff, 0.3));
     const light = new THREE.DirectionalLight(0xffffff, 0.8);
     light.position.set(10, 10, 5);
     scene.add(light);
 
-    // Floor
     const floorGeometry = new THREE.PlaneGeometry(200, 200);
     const floorMaterial = new THREE.MeshLambertMaterial({ color: 0xe0d7b5 });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // Egg enemy
     const eggGeometry = new THREE.SphereGeometry(1, 32, 32);
-    eggGeometry.scale(0.8, 1.2, 0.8); // stretch vertically to look eggy
+    eggGeometry.scale(0.8, 1.2, 0.8);
     const eggMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
     const egg = new THREE.Mesh(eggGeometry, eggMaterial);
     egg.position.set(0, 1, -10);
     scene.add(egg);
 
-    // Bullet pool
     let bullets = [];
 
-    // Shoot on click
-    document.addEventListener('click', () => {
+    document.body.addEventListener('mousedown', () => {
       if (!controls.isLocked) return;
-
       const bulletGeo = new THREE.SphereGeometry(0.2, 8, 8);
       const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
       const bullet = new THREE.Mesh(bulletGeo, bulletMat);
       bullet.position.copy(camera.position);
-      
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
       bullet.userData.velocity = dir.multiplyScalar(1.5);
@@ -83,18 +83,15 @@
       bullets.push(bullet);
     });
 
-    // Movement keys
     const keys = {};
     document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
     document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
     const velocity = new THREE.Vector3();
-
-    camera.position.set(0, 2, 0); // start height
+    camera.position.set(0, 2, 0);
 
     function animate() {
       requestAnimationFrame(animate);
-
       if (controls.isLocked) {
         velocity.set(0, 0, 0);
         if (keys['w']) velocity.z -= 0.1;
@@ -104,15 +101,14 @@
         controls.moveRight(velocity.x);
         controls.moveForward(velocity.z);
       }
-
       bullets.forEach(b => {
         b.position.add(b.userData.velocity);
       });
-
       renderer.render(scene, camera);
     }
 
     animate();
+
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
