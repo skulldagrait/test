@@ -3,25 +3,29 @@
 <head>
   <title>Egg FPS Arena</title>
   <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background-color: #1b1f23; }
     #menu {
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #fafafa; display: flex;
-      flex-direction: column; justify-content: center; align-items: center;
-      z-index: 2;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      background-color: rgba(0,0,0,0.6); z-index: 2;
     }
-    #menu h1 { font-size: 3em; margin-bottom: 20px; }
+    #menu h1 {
+      font-size: 3em; color: #fff; text-shadow: 2px 2px #000; margin-bottom: 20px;
+    }
     #playBtn {
       padding: 15px 30px; font-size: 1.5em;
-      background-color: #ffc107; color: #fff;
-      border: none; border-radius: 10px; cursor: pointer;
+      background-image: linear-gradient(to bottom, #00bfff, #007acc);
+      color: white; border: none; border-radius: 10px; cursor: pointer;
+      box-shadow: 0 0 10px rgba(0,191,255,0.7);
+      transition: transform 0.1s ease;
     }
+    #playBtn:hover { transform: scale(1.05); }
     canvas { display: block; }
   </style>
 </head>
 <body>
   <div id="menu">
-    <h1>🥚 Egg FPS Arena</h1>
+    <h1>Egg FPS Arena</h1>
     <button id="playBtn">Play</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
@@ -51,7 +55,7 @@
       }
     });
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const light = new THREE.DirectionalLight(0xffffff, 0.8);
     light.position.set(10, 10, 5);
     scene.add(light);
@@ -62,12 +66,13 @@
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    const eggGeometry = new THREE.SphereGeometry(1, 32, 32);
-    eggGeometry.scale(0.8, 1.2, 0.8);
-    const eggMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
-    const egg = new THREE.Mesh(eggGeometry, eggMaterial);
-    egg.position.set(0, 1, -10);
-    scene.add(egg);
+    const botGeometry = new THREE.SphereGeometry(1, 32, 32);
+    botGeometry.scale(0.8, 1.2, 0.8);
+    const botMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+    const bot = new THREE.Mesh(botGeometry, botMaterial);
+    bot.position.set(0, 1, -10);
+    bot.userData.health = 5;
+    scene.add(bot);
 
     let bullets = [];
 
@@ -79,7 +84,7 @@
       bullet.position.copy(camera.position);
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
-      bullet.userData.velocity = dir.multiplyScalar(1.5);
+      bullet.userData.velocity = dir.multiplyScalar(2.5);
       scene.add(bullet);
       bullets.push(bullet);
     });
@@ -102,7 +107,20 @@
         controls.moveRight(velocity.x);
         controls.moveForward(velocity.z);
       }
-      bullets.forEach(b => b.position.add(b.userData.velocity));
+
+      bullets.forEach(b => {
+        b.position.add(b.userData.velocity);
+        const dist = b.position.distanceTo(bot.position);
+        if (dist < 1 && bot.userData.health > 0) {
+          bot.userData.health--;
+          scene.remove(b);
+          bullets = bullets.filter(x => x !== b);
+          if (bot.userData.health === 0) {
+            scene.remove(bot);
+          }
+        }
+      });
+
       renderer.render(scene, camera);
     }
 
