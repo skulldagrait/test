@@ -1,78 +1,130 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Egg Shooter</title>
+  <title>Egg Arena</title>
   <style>
-    canvas { background: #eee; display: block; margin: auto; }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f4f4f4;
+      overflow: hidden;
+    }
+    #menu {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background-color: #fff;
+      z-index: 2;
+    }
+    #menu h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      color: #444;
+    }
+    #playBtn {
+      padding: 15px 30px;
+      font-size: 1.5em;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #game {
+      display: block;
+      margin: auto;
+      background-color: #cce5ff;
+    }
   </style>
 </head>
 <body>
-<canvas id="game" width="800" height="600"></canvas>
-<script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+  <div id="menu">
+    <h1>🥚 Egg Arena</h1>
+    <button id="playBtn">Play</button>
+  </div>
 
-let player = { x: 400, y: 300, radius: 20, speed: 4 };
-let bullets = [];
-let enemies = [{ x: 100, y: 100, radius: 20 }];
+  <canvas id="game" width="800" height="600"></canvas>
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'w') player.y -= player.speed;
-  if (e.key === 's') player.y += player.speed;
-  if (e.key === 'a') player.x -= player.speed;
-  if (e.key === 'd') player.x += player.speed;
-});
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const playBtn = document.getElementById('playBtn');
+    const menu = document.getElementById('menu');
 
-canvas.addEventListener('click', (e) => {
-  let angle = Math.atan2(e.clientY - player.y, e.clientX - player.x);
-  bullets.push({
-    x: player.x,
-    y: player.y,
-    dx: Math.cos(angle) * 5,
-    dy: Math.sin(angle) * 5
-  });
-});
+    let gameStarted = false;
+    let player = { x: 400, y: 300, radius: 20, color: 'white' };
+    let bullets = [];
+    let enemies = [{ x: 100, y: 100, radius: 20, color: 'brown' }];
 
-function update() {
-  bullets.forEach(b => {
-    b.x += b.dx;
-    b.y += b.dy;
-  });
-}
+    playBtn.onclick = () => {
+      menu.style.display = 'none';
+      gameStarted = true;
+    };
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.addEventListener('keydown', (e) => {
+      if (!gameStarted) return;
+      if (e.key === 'w') player.y -= 5;
+      if (e.key === 's') player.y += 5;
+      if (e.key === 'a') player.x -= 5;
+      if (e.key === 'd') player.x += 5;
+    });
 
-  // Player
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-  ctx.fillStyle = 'blue';
-  ctx.fill();
+    canvas.addEventListener('click', (e) => {
+      if (!gameStarted) return;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+      bullets.push({
+        x: player.x,
+        y: player.y,
+        dx: Math.cos(angle) * 6,
+        dy: Math.sin(angle) * 6
+      });
+    });
 
-  // Bullets
-  bullets.forEach(b => {
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = 'black';
-    ctx.fill();
-  });
+    function drawEgg(x, y, radius, color) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, radius * 0.8, radius, 0, 0, 2 * Math.PI);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
 
-  // Enemies
-  enemies.forEach(e => {
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'red';
-    ctx.fill();
-  });
-}
+    function update() {
+      bullets.forEach(b => {
+        b.x += b.dx;
+        b.y += b.dy;
+      });
+    }
 
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!gameStarted) return;
 
-loop();
-</script>
+      drawEgg(player.x, player.y, player.radius, player.color);
+
+      bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'black';
+        ctx.fill();
+      });
+
+      enemies.forEach(e => {
+        drawEgg(e.x, e.y, e.radius, e.color);
+      });
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
 </body>
 </html>
