@@ -38,16 +38,17 @@
     const menu = document.getElementById("menu");
 
     playBtn.onclick = () => {
-      menu.style.display = "none";
-      controls.lock();
+      renderer.domElement.requestPointerLock();
     };
 
-    controls.addEventListener('lock', () => {
-      menu.style.display = "none";
-    });
-
-    controls.addEventListener('unlock', () => {
-      menu.style.display = "flex";
+    document.addEventListener("pointerlockchange", () => {
+      if (document.pointerLockElement === renderer.domElement) {
+        controls.lock();
+        menu.style.display = "none";
+      } else {
+        controls.unlock();
+        menu.style.display = "flex";
+      }
     });
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.3));
@@ -70,7 +71,7 @@
 
     let bullets = [];
 
-    document.body.addEventListener('mousedown', () => {
+    document.addEventListener('mousedown', () => {
       if (!controls.isLocked) return;
       const bulletGeo = new THREE.SphereGeometry(0.2, 8, 8);
       const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
@@ -101,9 +102,7 @@
         controls.moveRight(velocity.x);
         controls.moveForward(velocity.z);
       }
-      bullets.forEach(b => {
-        b.position.add(b.userData.velocity);
-      });
+      bullets.forEach(b => b.position.add(b.userData.velocity));
       renderer.render(scene, camera);
     }
 
