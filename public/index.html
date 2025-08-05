@@ -5,7 +5,7 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background-color: #1b1f23; }
     #menu {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       background-color: rgba(0,0,0,0.6); z-index: 2;
     }
@@ -42,11 +42,11 @@
     const menu = document.getElementById("menu");
 
     playBtn.onclick = () => {
-      renderer.domElement.requestPointerLock();
+      document.body.requestPointerLock();
     };
 
     document.addEventListener("pointerlockchange", () => {
-      if (document.pointerLockElement === renderer.domElement) {
+      if (document.pointerLockElement === document.body) {
         controls.lock();
         menu.style.display = "none";
       } else {
