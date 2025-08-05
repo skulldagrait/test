@@ -1,0 +1,136 @@
+    <!DOCTYPE html>
+<html>
+<head>
+  <title>Egg FPS Arena</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background-color: #1b1f23; }
+    #menu {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      background-color: rgba(0,0,0,0.6); z-index: 2;
+    }
+    #menu h1 {
+      font-size: 3em; color: #fff; text-shadow: 2px 2px #000; margin-bottom: 20px;
+    }
+    #playBtn {
+      padding: 15px 30px; font-size: 1.5em;
+      background-image: linear-gradient(to bottom, #00bfff, #007acc);
+      color: white; border: none; border-radius: 10px; cursor: pointer;
+      box-shadow: 0 0 10px rgba(0,191,255,0.7);
+      transition: transform 0.1s ease;
+    }
+    #playBtn:hover { transform: scale(1.05); }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <div id="menu">
+    <h1>Egg FPS Arena</h1>
+    <button id="playBtn">Play</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/PointerLockControls.js"></script>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.PointerLockControls(camera, document.body);
+    const playBtn = document.getElementById("playBtn");
+    const menu = document.getElementById("menu");
+
+    playBtn.onclick = () => {
+      document.body.requestPointerLock();
+    };
+
+    document.addEventListener("pointerlockchange", () => {
+      if (document.pointerLockElement === document.body) {
+        controls.lock();
+        menu.style.display = "none";
+      } else {
+        controls.unlock();
+        menu.style.display = "flex";
+      }
+    });
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const light = new THREE.DirectionalLight(0xffffff, 0.8);
+    light.position.set(10, 10, 5);
+    scene.add(light);
+
+    const floorGeometry = new THREE.PlaneGeometry(200, 200);
+    const floorMaterial = new THREE.MeshLambertMaterial({ color: 0xe0d7b5 });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    const botGeometry = new THREE.SphereGeometry(1, 32, 32);
+    botGeometry.scale(0.8, 1.2, 0.8);
+    const botMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+    const bot = new THREE.Mesh(botGeometry, botMaterial);
+    bot.position.set(0, 1, -10);
+    bot.userData.health = 5;
+    scene.add(bot);
+
+    let bullets = [];
+
+    document.addEventListener('mousedown', () => {
+      if (!controls.isLocked) return;
+      const bulletGeo = new THREE.SphereGeometry(0.2, 8, 8);
+      const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+      const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+      bullet.position.copy(camera.position);
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      bullet.userData.velocity = dir.multiplyScalar(2.5);
+      scene.add(bullet);
+      bullets.push(bullet);
+    });
+
+    const keys = {};
+    document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    const velocity = new THREE.Vector3();
+    camera.position.set(0, 2, 0);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls.isLocked) {
+        velocity.set(0, 0, 0);
+        if (keys['w']) velocity.z -= 0.1;
+        if (keys['s']) velocity.z += 0.1;
+        if (keys['a']) velocity.x -= 0.1;
+        if (keys['d']) velocity.x += 0.1;
+        controls.moveRight(velocity.x);
+        controls.moveForward(velocity.z);
+      }
+
+      bullets.forEach(b => {
+        b.position.add(b.userData.velocity);
+        const dist = b.position.distanceTo(bot.position);
+        if (dist < 1 && bot.userData.health > 0) {
+          bot.userData.health--;
+          scene.remove(b);
+          bullets = bullets.filter(x => x !== b);
+          if (bot.userData.health === 0) {
+            scene.remove(bot);
+          }
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
