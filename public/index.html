@@ -1,130 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Egg Arena</title>
+  <meta charset="UTF-8">
+  <title>Egg FPS Arena</title>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #f4f4f4;
-      overflow: hidden;
-    }
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
     #menu {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      background-color: #fff;
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #fafafa; display: flex;
+      flex-direction: column; justify-content: center; align-items: center;
       z-index: 2;
     }
-    #menu h1 {
-      font-size: 3em;
-      margin-bottom: 20px;
-      color: #444;
-    }
+    #menu h1 { font-size: 3em; margin-bottom: 20px; }
     #playBtn {
-      padding: 15px 30px;
-      font-size: 1.5em;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      padding: 15px 30px; font-size: 1.5em;
+      background-color: #ffc107; color: #fff;
+      border: none; border-radius: 10px; cursor: pointer;
     }
-    #game {
-      display: block;
-      margin: auto;
-      background-color: #cce5ff;
-    }
+    canvas { display: block; }
   </style>
 </head>
 <body>
   <div id="menu">
-    <h1>🥚 Egg Arena</h1>
+    <h1>🥚 Egg FPS Arena</h1>
     <button id="playBtn">Play</button>
   </div>
-
-  <canvas id="game" width="800" height="600"></canvas>
-
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/PointerLockControls.js"></script>
   <script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    const playBtn = document.getElementById('playBtn');
-    const menu = document.getElementById('menu');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-    let gameStarted = false;
-    let player = { x: 400, y: 300, radius: 20, color: 'white' };
-    let bullets = [];
-    let enemies = [{ x: 100, y: 100, radius: 20, color: 'brown' }];
+    const controls = new THREE.PointerLockControls(camera, document.body);
+    const playBtn = document.getElementById("playBtn");
+    const menu = document.getElementById("menu");
 
     playBtn.onclick = () => {
-      menu.style.display = 'none';
-      gameStarted = true;
+      menu.style.display = "none";
+      controls.lock();
     };
 
-    document.addEventListener('keydown', (e) => {
-      if (!gameStarted) return;
-      if (e.key === 'w') player.y -= 5;
-      if (e.key === 's') player.y += 5;
-      if (e.key === 'a') player.x -= 5;
-      if (e.key === 'd') player.x += 5;
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    const light = new THREE.DirectionalLight(0xffffff, 0.8);
+    light.position.set(10, 10, 5);
+    scene.add(light);
+
+    // Floor
+    const floorGeometry = new THREE.PlaneGeometry(200, 200);
+    const floorMaterial = new THREE.MeshLambertMaterial({ color: 0xe0d7b5 });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    // Egg enemy
+    const eggGeometry = new THREE.SphereGeometry(1, 32, 32);
+    eggGeometry.scale(0.8, 1.2, 0.8); // stretch vertically to look eggy
+    const eggMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+    const egg = new THREE.Mesh(eggGeometry, eggMaterial);
+    egg.position.set(0, 1, -10);
+    scene.add(egg);
+
+    // Bullet pool
+    let bullets = [];
+
+    // Shoot on click
+    document.addEventListener('click', () => {
+      if (!controls.isLocked) return;
+
+      const bulletGeo = new THREE.SphereGeometry(0.2, 8, 8);
+      const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+      const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+      bullet.position.copy(camera.position);
+      
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      bullet.userData.velocity = dir.multiplyScalar(1.5);
+      scene.add(bullet);
+      bullets.push(bullet);
     });
 
-    canvas.addEventListener('click', (e) => {
-      if (!gameStarted) return;
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
-      bullets.push({
-        x: player.x,
-        y: player.y,
-        dx: Math.cos(angle) * 6,
-        dy: Math.sin(angle) * 6
+    // Movement keys
+    const keys = {};
+    document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    const velocity = new THREE.Vector3();
+
+    camera.position.set(0, 2, 0); // start height
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (controls.isLocked) {
+        velocity.set(0, 0, 0);
+        if (keys['w']) velocity.z -= 0.1;
+        if (keys['s']) velocity.z += 0.1;
+        if (keys['a']) velocity.x -= 0.1;
+        if (keys['d']) velocity.x += 0.1;
+        controls.moveRight(velocity.x);
+        controls.moveForward(velocity.z);
+      }
+
+      bullets.forEach(b => {
+        b.position.add(b.userData.velocity);
       });
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     });
-
-    function drawEgg(x, y, radius, color) {
-      ctx.beginPath();
-      ctx.ellipse(x, y, radius * 0.8, radius, 0, 0, 2 * Math.PI);
-      ctx.fillStyle = color;
-      ctx.fill();
-    }
-
-    function update() {
-      bullets.forEach(b => {
-        b.x += b.dx;
-        b.y += b.dy;
-      });
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (!gameStarted) return;
-
-      drawEgg(player.x, player.y, player.radius, player.color);
-
-      bullets.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = 'black';
-        ctx.fill();
-      });
-
-      enemies.forEach(e => {
-        drawEgg(e.x, e.y, e.radius, e.color);
-      });
-    }
-
-    function loop() {
-      update();
-      draw();
-      requestAnimationFrame(loop);
-    }
-
-    loop();
   </script>
 </body>
 </html>
